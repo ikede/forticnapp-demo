@@ -13,43 +13,51 @@ phases:
 
       - python --version
       - pip install --upgrade pip
-
       - pip install -r requirements.txt
 
-      # CI quality tools
-      - pip install pylint pytest
-
-  pre_build:
-    commands:
       - echo "========================================"
-      - echo "Running static code quality checks..."
+      - echo "Installing FortiCNAPP CLI..."
       - echo "========================================"
 
-      # Continue even if lint issues exist
-      - pylint app.py db.py config.py || true
+      - curl -s https://raw.githubusercontent.com/lacework/go-sdk/main/cli/install.sh | bash
+
+      - export PATH=$PATH:$HOME/.local/bin:$HOME/bin
+
+      - lacework version
+
+      - echo "========================================"
+      - echo "Authenticating to FortiCNAPP..."
+      - echo "========================================"
+
+      - lacework configure \
+          -a "$LW_ACCOUNT" \
+          -k "$LW_API_KEY" \
+          -s "$LW_API_SECRET" \
+          --noninteractive
+
+      - echo "========================================"
+      - echo "Installing SCA Component..."
+      - echo "========================================"
+
+      - lacework component install sca
 
   build:
     commands:
+
       - echo "========================================"
-      - echo "Compiling Python..."
+      - echo "Compiling application..."
       - echo "========================================"
 
       - python -m py_compile app.py
-      - python -m py_compile db.py
-      - python -m py_compile config.py
 
       - echo "========================================"
-      - echo "Running Unit Tests..."
+      - echo "Running FortiCNAPP Code Security Scan..."
       - echo "========================================"
 
-      # Continue if no tests yet
-      - pytest || true
+      - lacework sca scan ./ -f lw-json -o lacework-results.json
 
-  post_build:
-    commands:
-      - echo "========================================"
-      - echo "Build completed successfully."
-      - echo "========================================"
+      - ls -lah
+      - cat lacework-results.json | head -100
 
 artifacts:
   files:
