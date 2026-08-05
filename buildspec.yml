@@ -1,64 +1,41 @@
 version: 0.2
 
 phases:
-
   install:
     runtime-versions:
       python: 3.11
 
     commands:
-      - echo "========================================"
       - echo "Installing Python dependencies..."
-      - echo "========================================"
-
       - python --version
       - pip install --upgrade pip
       - pip install -r requirements.txt
 
-      - echo "========================================"
       - echo "Installing FortiCNAPP CLI..."
-      - echo "========================================"
-
       - curl -s https://raw.githubusercontent.com/lacework/go-sdk/main/cli/install.sh | bash
 
-      - export PATH=$PATH:$HOME/.local/bin:$HOME/bin
-
+      - echo "Checking CLI version..."
       - lacework version
 
-      - echo "========================================"
-      - echo "Authenticating to FortiCNAPP..."
-      - echo "========================================"
+      - echo "Checking authentication..."
+      - lacework configure show account
 
-      - lacework configure \
-          -a "$LW_ACCOUNT" \
-          -k "$LW_API_KEY" \
-          -s "$LW_API_SECRET" \
-          --noninteractive
+      - echo "Listing available components..."
+      - lacework component list
 
-      - echo "========================================"
-      - echo "Installing SCA Component..."
-      - echo "========================================"
-
+      - echo "Installing SCA component..."
       - lacework component install sca
 
   build:
     commands:
-
-      - echo "========================================"
       - echo "Compiling application..."
-      - echo "========================================"
-
       - python -m py_compile app.py
 
-      - echo "========================================"
-      - echo "Running FortiCNAPP Code Security Scan..."
-      - echo "========================================"
+      - echo "Running FortiCNAPP Code Security scan..."
+      - lacework sca scan ./ -f lw-json -o /tmp/lacework-scan.json
 
-      - lacework sca scan ./ -f lw-json -o lacework-results.json
-
-      - ls -lah
-      - cat lacework-results.json | head -100
+      - ls -l /tmp/lacework-scan.json
 
 artifacts:
   files:
-    - '**/*'
+    - "**/*"
