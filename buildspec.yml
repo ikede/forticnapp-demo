@@ -6,12 +6,50 @@ phases:
     runtime-versions:
       python: 3.11
 
+    commands:
+      - echo "========================================"
+      - echo "Installing Python dependencies..."
+      - echo "========================================"
+
+      - python --version
+      - pip install --upgrade pip
+
+      - pip install -r requirements.txt
+
+      # CI quality tools
+      - pip install pylint pytest
+
+  pre_build:
+    commands:
+      - echo "========================================"
+      - echo "Running static code quality checks..."
+      - echo "========================================"
+
+      # Continue even if lint issues exist
+      - pylint app.py db.py config.py || true
+
   build:
     commands:
-      - echo "Build started"
-      - python --version
-      - pip install -r requirements.txt
+      - echo "========================================"
+      - echo "Compiling Python..."
+      - echo "========================================"
+
       - python -m py_compile app.py
+      - python -m py_compile db.py
+      - python -m py_compile config.py
+
+      - echo "========================================"
+      - echo "Running Unit Tests..."
+      - echo "========================================"
+
+      # Continue if no tests yet
+      - pytest || true
+
+  post_build:
+    commands:
+      - echo "========================================"
+      - echo "Build completed successfully."
+      - echo "========================================"
 
 artifacts:
   files:
