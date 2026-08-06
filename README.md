@@ -1,3 +1,3 @@
 # forticnapp-demo
 FortiCNAPP Code Security Application
-Automatic trigger test
+Automatic trigger Demo test
