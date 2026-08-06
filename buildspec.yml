@@ -27,8 +27,6 @@ phases:
       - lacework configure -a "$LW_ACCOUNT" -k "$LW_API_KEY" -s "$LW_API_SECRET" --noninteractive
 
       - lacework version
-
-      - echo "Installing SCA Component..."
       - lacework component install sca
 
   build:
@@ -42,31 +40,60 @@ phases:
       - mkdir -p reports
 
       - echo "========================================"
-      - echo "Running FortiCNAPP SCA Scan..."
+      - echo "Running FortiCNAPP Code Security Scan..."
       - echo "========================================"
 
       - lacework sca scan ./ -f lw-json -o reports/lacework.json
 
       - echo "========================================"
-      - echo "Inspecting JSON Report..."
+      - echo "Evaluating Security Policy..."
       - echo "========================================"
 
       - |
         python3 - <<'EOF'
         import json
+        import sys
 
         with open("reports/lacework.json") as f:
-            data = json.load(f)
+            report = json.load(f)
 
-        print("=" * 80)
-        print("TOP LEVEL KEYS")
-        print("=" * 80)
-        print(list(data.keys()))
+        critical = 0
+        high = 0
+        medium = 0
+        low = 0
 
-        print("=" * 80)
-        print("FULL JSON REPORT")
-        print("=" * 80)
-        print(json.dumps(data, indent=2))
+        for vuln in report.get("Vulnerabilities", []):
+            severity = vuln.get("Info", {}).get("Severity", "").lower()
+
+            if severity == "critical":
+                critical += 1
+            elif severity == "high":
+                high += 1
+            elif severity == "medium":
+                medium += 1
+            elif severity == "low":
+                low += 1
+
+        print("")
+        print("========================================")
+        print(" FortiCNAPP Policy Evaluation")
+        print("========================================")
+        print(f"Critical : {critical}")
+        print(f"High     : {high}")
+        print(f"Medium   : {medium}")
+        print(f"Low      : {low}")
+        print("========================================")
+
+        if critical > 0 or high > 0:
+            print("")
+            print("❌ BUILD FAILED")
+            print("Security policy violated.")
+            print("Critical or High vulnerabilities detected.")
+            sys.exit(1)
+
+        print("")
+        print("✅ BUILD PASSED")
+        print("Security policy satisfied.")
         EOF
 
       - echo "========================================"
@@ -74,12 +101,6 @@ phases:
       - echo "========================================"
 
       - ls -lah reports
-
-      - echo "========================================"
-      - echo "Available SCA Options"
-      - echo "========================================"
-
-      - lacework sca scan --help
 
 artifacts:
   files:
