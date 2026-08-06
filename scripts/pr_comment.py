@@ -1,131 +1,36 @@
 import json
-import os
+import traceback
 import sys
+from pathlib import Path
 
-REPORT = "reports/lacework.json"
+try:
+    report_file = Path("reports/lacework.json")
 
-if not os.path.exists(REPORT):
-    print("ERROR: Scan report not found.")
-    sys.exit(1)
+    if not report_file.exists():
+        raise FileNotFoundError("reports/lacework.json was not generated.")
 
-with open(REPORT, "r") as f:
-    report = json.load(f)
+    with report_file.open() as f:
+        report = json.load(f)
 
-# ------------------------------------
-# Find vulnerability list automatically
-# ------------------------------------
+    print("Successfully loaded FortiCNAPP report")
 
-vulnerabilities = []
+    markdown = []
 
-if isinstance(report, dict):
-
-    if "Vulnerabilities" in report:
-        vulnerabilities = report["Vulnerabilities"]
-
-    elif "vulnerabilities" in report:
-        vulnerabilities = report["vulnerabilities"]
-
-    elif "packages" in report:
-
-        for package in report["packages"]:
-
-            vulnerabilities.extend(
-                package.get("vulnerabilities", [])
-            )
-
-# ------------------------------------
-
-critical = 0
-high = 0
-medium = 0
-low = 0
-
-markdown = []
-
-markdown.append("# 🛡️ FortiCNAPP Security Review")
-markdown.append("")
-markdown.append("## Dependency Scan")
-markdown.append("")
-
-markdown.append("| Severity | Count |")
-markdown.append("|----------|------:|")
-
-for vuln in vulnerabilities:
-
-    severity = (
-        vuln.get("Info", {})
-            .get("Severity", "")
-            .lower()
-    )
-
-    if severity == "critical":
-        critical += 1
-
-    elif severity == "high":
-        high += 1
-
-    elif severity == "medium":
-        medium += 1
-
-    elif severity == "low":
-        low += 1
-
-markdown.append(f"| Critical | {critical} |")
-markdown.append(f"| High | {high} |")
-markdown.append(f"| Medium | {medium} |")
-markdown.append(f"| Low | {low} |")
-
-markdown.append("")
-
-if critical or high:
-
-    markdown.append("## ❌ Policy Failed")
+    markdown.append("# 🛡️ FortiCNAPP Code Security Report")
     markdown.append("")
-    markdown.append(
-        "High or Critical vulnerabilities were detected."
-    )
-
-else:
-
-    markdown.append("## ✅ Policy Passed")
+    markdown.append("## Raw Scan Output")
     markdown.append("")
-    markdown.append(
-        "No High or Critical vulnerabilities detected."
-    )
+    markdown.append("```json")
+    markdown.append(json.dumps(report, indent=2)[:5000])
+    markdown.append("```")
 
-markdown.append("")
-markdown.append("---")
-markdown.append("")
-markdown.append("## Findings")
-markdown.append("")
+    Path("reports").mkdir(exist_ok=True)
 
-if len(vulnerabilities) == 0:
+    with open("reports/pr_comment.md", "w") as f:
+        f.write("\n".join(markdown))
 
-    markdown.append(
-        "No third-party vulnerabilities found."
-    )
+    print("Generated reports/pr_comment.md")
 
-else:
-
-    for vuln in vulnerabilities:
-
-        info = vuln.get("Info", {})
-
-        severity = info.get("Severity", "Unknown")
-        package = info.get("Package", "")
-        name = info.get("Name", "Unknown")
-        fix = info.get("FixedVersion", "-")
-
-        markdown.append(
-            f"- **{severity}** | `{package}` | {name} | Fix: **{fix}**"
-        )
-
-os.makedirs("reports", exist_ok=True)
-
-with open("reports/pr_comment.md", "w") as f:
-    f.write("\n".join(markdown))
-
-print("Markdown report created.")
-
-if critical or high:
+except Exception:
+    traceback.print_exc()
     sys.exit(1)
