@@ -18,6 +18,8 @@ try:
 
     markdown.append("# 🛡️ FortiCNAPP Code Security Report")
     markdown.append("")
+    markdown.append("## Raw Scan Output")
+    markdown.append("")
     markdown.append("```json")
     markdown.append(json.dumps(report, indent=2)[:5000])
     markdown.append("```")
