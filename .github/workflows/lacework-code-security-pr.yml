@@ -1,0 +1,42 @@
+name: FortiCNAPP PR Scan
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  LW_ACCOUNT: ${{ secrets.LW_ACCOUNT }}
+  LW_API_KEY: ${{ secrets.LW_API_KEY }}
+  LW_API_SECRET: ${{ secrets.LW_API_SECRET }}
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target: [new, old]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - if: matrix.target == 'old'
+        run: git checkout HEAD^1
+
+      - uses: lacework/code-security-action@v1
+        with:
+          target: ${{ matrix.target }}
+
+  publish:
+    needs: analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: lacework/code-security-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
