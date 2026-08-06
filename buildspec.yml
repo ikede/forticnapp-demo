@@ -6,31 +6,50 @@ phases:
       python: 3.11
 
     commands:
+      - echo "========================================"
       - echo "Installing Python dependencies..."
+      - echo "========================================"
+
       - python --version
       - pip install --upgrade pip
       - pip install -r requirements.txt
 
+      - echo "========================================"
       - echo "Installing FortiCNAPP CLI..."
+      - echo "========================================"
+
       - curl -s https://raw.githubusercontent.com/lacework/go-sdk/main/cli/install.sh | bash
 
+      - echo "========================================"
       - echo "Configuring FortiCNAPP CLI..."
+      - echo "========================================"
+
       - lacework configure -a "$LW_ACCOUNT" -k "$LW_API_KEY" -s "$LW_API_SECRET" --noninteractive
 
       - lacework version
+
+      - echo "Installing SCA Component..."
       - lacework component install sca
 
   build:
     commands:
+      - echo "========================================"
       - echo "Compiling application..."
+      - echo "========================================"
+
       - python -m py_compile app.py
 
       - mkdir -p reports
 
-      - echo "Running FortiCNAPP SCA scan..."
+      - echo "========================================"
+      - echo "Running FortiCNAPP SCA Scan..."
+      - echo "========================================"
+
       - lacework sca scan ./ -f lw-json -o reports/lacework.json
 
-      - echo "Checking scan results..."
+      - echo "========================================"
+      - echo "Inspecting JSON Report..."
+      - echo "========================================"
 
       - |
         python3 - <<'EOF'
@@ -39,14 +58,27 @@ phases:
         with open("reports/lacework.json") as f:
             data = json.load(f)
 
-        print("Loaded FortiCNAPP JSON report")
-        print(json.dumps(data, indent=2)[:1000])
+        print("=" * 80)
+        print("TOP LEVEL KEYS")
+        print("=" * 80)
+        print(list(data.keys()))
+
+        print("=" * 80)
+        print("FULL JSON REPORT")
+        print("=" * 80)
+        print(json.dumps(data, indent=2))
         EOF
 
-      - echo "Generated reports:"
+      - echo "========================================"
+      - echo "Generated Reports"
+      - echo "========================================"
+
       - ls -lah reports
 
-      - echo "Available SCA options:"
+      - echo "========================================"
+      - echo "Available SCA Options"
+      - echo "========================================"
+
       - lacework sca scan --help
 
 artifacts:
