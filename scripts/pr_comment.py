@@ -1,65 +1,34 @@
 import json
+import traceback
 import sys
+from pathlib import Path
 
-with open("reports/lacework.json") as f:
-    report = json.load(f)
+try:
+    report_file = Path("reports/lacework.json")
 
-critical = 0
-high = 0
-medium = 0
-low = 0
+    if not report_file.exists():
+        raise FileNotFoundError("reports/lacework.json was not generated.")
 
-markdown = []
+    with report_file.open() as f:
+        report = json.load(f)
 
-markdown.append("# 🛡️ FortiCNAPP Code Security Report")
-markdown.append("")
-markdown.append("| Severity | Count |")
-markdown.append("|----------|------:|")
+    print("Successfully loaded FortiCNAPP report")
 
-vulnerabilities = report.get("Vulnerabilities", [])
+    markdown = []
 
-for vuln in vulnerabilities:
-    severity = vuln.get("Info", {}).get("Severity", "").lower()
-
-    if severity == "critical":
-        critical += 1
-    elif severity == "high":
-        high += 1
-    elif severity == "medium":
-        medium += 1
-    elif severity == "low":
-        low += 1
-
-markdown.append(f"| Critical | {critical} |")
-markdown.append(f"| High | {high} |")
-markdown.append(f"| Medium | {medium} |")
-markdown.append(f"| Low | {low} |")
-markdown.append("")
-
-if critical > 0 or high > 0:
-    markdown.append("## ❌ Pull Request Failed")
+    markdown.append("# 🛡️ FortiCNAPP Code Security Report")
     markdown.append("")
-    markdown.append("High or Critical vulnerabilities were detected.")
-else:
-    markdown.append("## ✅ Pull Request Passed")
-    markdown.append("")
-    markdown.append("No High or Critical vulnerabilities were detected.")
+    markdown.append("```json")
+    markdown.append(json.dumps(report, indent=2)[:5000])
+    markdown.append("```")
 
-markdown.append("")
-markdown.append("## Vulnerabilities")
-markdown.append("")
+    Path("reports").mkdir(exist_ok=True)
 
-if not vulnerabilities:
-    markdown.append("No third-party vulnerabilities found.")
-else:
-    for vuln in vulnerabilities:
-        info = vuln.get("Info", {})
-        severity = info.get("Severity", "Unknown")
-        name = info.get("Name", "Unknown")
-        markdown.append(f"- **{severity}** — {name}")
+    with open("reports/pr_comment.md", "w") as f:
+        f.write("\n".join(markdown))
 
-with open("reports/pr_comment.md", "w") as f:
-    f.write("\n".join(markdown))
+    print("Generated reports/pr_comment.md")
 
-if critical > 0 or high > 0:
+except Exception:
+    traceback.print_exc()
     sys.exit(1)
