@@ -30,6 +30,20 @@ phases:
 
       - echo "Running FortiCNAPP SCA scan..."
       - lacework sca scan ./ -f lw-json -o reports/lacework.json
+      - echo "Checking scan results..."
+
+- |
+    python3 - <<'EOF'
+    import json
+    import sys
+
+    with open("reports/lacework.json") as f:
+        data = json.load(f)
+
+    print("Loaded FortiCNAPP JSON report")
+
+    print(json.dumps(data, indent=2)[:1000])
+    EOF
 
       - echo "Generated reports:"
       - ls -lah reports
