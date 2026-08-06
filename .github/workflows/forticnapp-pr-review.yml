@@ -44,18 +44,53 @@ jobs:
 
       - name: Run Scan
         run: |
-          mkdir reports
+          mkdir -p reports
 
           lacework sca scan ./ \
             -f lw-json \
             -o reports/lacework.json
 
-      - name: Evaluate Results
-        run: |
-          python scripts/pr_comment.py
+      #################################################################
+      # TEMPORARY DEBUG STEP
+      #################################################################
 
-      - name: Publish PR Comment
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body-path: reports/pr_comment.md
+      - name: Inspect Scan Output
+        run: |
+          python - <<EOF
+          import json
+
+          with open("reports/lacework.json") as f:
+              data = json.load(f)
+
+          print("=" * 80)
+          print("OBJECT TYPE")
+          print("=" * 80)
+          print(type(data))
+
+          if isinstance(data, dict):
+              print()
+              print("=" * 80)
+              print("TOP LEVEL KEYS")
+              print("=" * 80)
+              print(list(data.keys()))
+
+          print()
+          print("=" * 80)
+          print("FIRST 5000 CHARACTERS")
+          print("=" * 80)
+          print(json.dumps(data, indent=2)[:5000])
+          EOF
+
+      #################################################################
+      # DISABLED UNTIL WE KNOW THE JSON STRUCTURE
+      #################################################################
+
+      # - name: Evaluate Results
+      #   run: |
+      #     python scripts/pr_comment.py
+
+      # - name: Publish PR Comment
+      #   uses: peter-evans/create-or-update-comment@v4
+      #   with:
+      #     issue-number: ${{ github.event.pull_request.number }}
+      #     body-path: reports/pr_comment.md
