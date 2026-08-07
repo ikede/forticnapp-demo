@@ -50,47 +50,45 @@ jobs:
             -f lw-json \
             -o reports/lacework.json
 
-      #################################################################
-      # TEMPORARY DEBUG STEP
-      #################################################################
-
       - name: Inspect Scan Output
         run: |
-          python - <<EOF
+          python - <<'EOF'
           import json
 
           with open("reports/lacework.json") as f:
-              data = json.load(f)
+              report = json.load(f)
 
           print("=" * 80)
-          print("OBJECT TYPE")
+          print("TOP LEVEL KEYS")
           print("=" * 80)
-          print(type(data))
+          print(list(report.keys()))
 
-          if isinstance(data, dict):
-              print()
-              print("=" * 80)
-              print("TOP LEVEL KEYS")
-              print("=" * 80)
-              print(list(data.keys()))
+          vulns = report.get("Vulnerabilities", [])
 
           print()
           print("=" * 80)
-          print("FIRST 5000 CHARACTERS")
+          print("NUMBER OF VULNERABILITIES")
           print("=" * 80)
-          print(json.dumps(data, indent=2)[:5000])
+          print(len(vulns))
+
+          if vulns:
+              print()
+              print("=" * 80)
+              print("FIRST VULNERABILITY")
+              print("=" * 80)
+              print(json.dumps(vulns[0], indent=2))
+          else:
+              print()
+              print("No vulnerabilities found.")
           EOF
 
-      #################################################################
-      # DISABLED UNTIL WE KNOW THE JSON STRUCTURE
-      #################################################################
+      - name: Evaluate Results
+        run: |
+          python scripts/pr_comment.py
 
-      # - name: Evaluate Results
-      #   run: |
-      #     python scripts/pr_comment.py
-
-      # - name: Publish PR Comment
-      #   uses: peter-evans/create-or-update-comment@v4
-      #   with:
-      #     issue-number: ${{ github.event.pull_request.number }}
-      #     body-path: reports/pr_comment.md
+      - name: Publish PR Comment
+        if: always()
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: reports/pr_comment.md
