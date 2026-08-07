@@ -1,0 +1,16 @@
+default:
+  sca:
+    enabled: true
+
+    pullRequest:
+      auditMode: false
+      comments: true
+      commentOnlyHighAndCritical: false
+
+  iac:
+    enabled: true
+
+    pullRequest:
+      auditMode: false
+      comments: true
+      commentOnlyHighAndCritical: false
