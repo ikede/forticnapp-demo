@@ -1,3 +1,3 @@
 # forticnapp-demo
 FortiCNAPP Code Security Application
-Automatic trigger AWS Build Demo test
+Automatic trigger for Global Accelerex
